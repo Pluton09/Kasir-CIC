@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kasir – Prototype</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f4f5f3;--card:#fff;--tx:#1d2420;--mut:#6b7570;--bd:#dfe3df;--ac:#0f766e;--on:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a17;--card:#1d2521;--tx:#e8ede9;--mut:#93a09a;--bd:#2b3631;--ac:#2dd4bf;--on:#06201c}}
+:root[data-theme="dark"]{--bg:#141a17;--card:#1d2521;--tx:#e8ede9;--mut:#93a09a;--bd:#2b3631;--ac:#2dd4bf;--on:#06201c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--bd);background:var(--card);border-radius:8px;padding:8px 12px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+input,select{width:100%;border:1px solid var(--bd);background:var(--card);border-radius:8px;padding:9px 10px}
+header{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bd);background:var(--card)}
+header b{white-space:nowrap}
+header input{flex:1}
+main{display:grid;grid-template-columns:1fr 340px;gap:14px;padding:14px;align-items:start}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+#cats,.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border-radius:999px;padding:6px 14px}
+.chip.on{background:var(--ac);color:var(--on);border-color:var(--ac)}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.it{padding:0;overflow:hidden;text-align:left}
+.it i{display:grid;place-items:center;height:72px;color:#fff;font:600 24px system-ui;font-style:normal}
+.it span{display:block;padding:6px 8px 0;font-size:13px;font-weight:600}
+.it small{display:block;padding:0 8px 8px;color:var(--mut)}
+aside{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;display:grid;gap:8px}
+.row{display:flex;gap:8px}
+.ln{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)}
+.ln small{display:block;color:var(--mut)}
+.q{display:flex;align-items:center;gap:10px}
+.q button{padding:2px 10px}
+.tot{display:flex;justify-content:space-between;font-size:18px;padding-top:6px}
+.pri{background:var(--ac);color:var(--on);border-color:var(--ac);font-weight:600;padding:12px}
+.pri:disabled{opacity:.4;cursor:not-allowed}
+.mut{color:var(--mut)}
+dialog{border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);width:min(92vw,380px);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog h3{margin:0 0 8px}
+.big{font-size:28px;font-weight:700;margin-bottom:10px}
+dialog .row{margin-top:12px}dialog .row button{flex:1}
+dialog input{margin-bottom:8px}
+.rc div{display:flex;justify-content:space-between;padding:2px 0}
+</style>
+</head>
+<body>
+<header><b>Kasir</b><input id="s" placeholder="Cari nama menu" aria-label="Cari menu"><button id="hist">Riwayat</button></header>
+<main>
+<section><div id="cats"></div><div id="grid"></div></section>
+<aside>
+<div class="row"><input id="tb" placeholder="Meja"><input id="cu" placeholder="Pelanggan"></div>
+<input id="nt" placeholder="Catatan">
+<div id="lines"></div>
+<div class="tot"><span>Total</span><b id="tt">Rp 0</b></div>
+<button id="pay" class="pri">Pembayaran</button>
+<button id="clr">Kosongkan pesanan</button>
+</aside>
+</main>
+<dialog id="dlg"></dialog>
+<script>
+const M=[
+{n:"Teh Manis",p:6000,c:"Minuman"},{n:"Teh Tarik",p:6000,c:"Minuman"},{n:"Teh Tawar",p:6000,c:"Minuman"},{n:"Kopi Hitam",p:5000,c:"Minuman"},{n:"Es Jeruk",p:7000,c:"Minuman"},
+{n:"Telor Ayam Kampung BJ",p:8000,c:"Makanan"},{n:"Nasi Putih",p:5000,c:"Makanan"},{n:"Mie Goreng",p:12000,c:"Makanan"},{n:"Nasi Ayam Goreng",p:18000,c:"Makanan"},
+{n:"Toping Bakso",p:5000,c:"Toping"},{n:"Toping Keju",p:5000,c:"Toping"},{n:"Toping Kornet",p:5000,c:"Toping"},{n:"Toping Sosis",p:5000,c:"Toping"},
+{n:"Gorengan",p:2000,c:"Jajanan"},{n:"Roti Bakar",p:10000,c:"Jajanan"}];
+const C=["Semua",...new Set(M.map(x=>x.c))];
+let cat="Semua",q="",cart={},pm="Tunai";
+const $=s=>document.querySelector(s),dlg=$("#dlg");
+const rp=n=>"Rp "+n.toLocaleString("id-ID");
+const col=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))%360;return "hsl("+h+" 45% 40%)"};
+const ini=n=>n.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const price=n=>M.find(x=>x.n==n).p;
+const total=()=>Object.entries(cart).reduce((s,[n,k])=>s+price(n)*k,0);
+let S=[];try{S=JSON.parse(localStorage.getItem("sales")||"[]")}catch(e){}
+const save=()=>{try{localStorage.setItem("sales",JSON.stringify(S))}catch(e){}};
+
+function cats(){$("#cats").innerHTML=C.map(c=>`<button class="chip ${c==cat?"on":""}" data-c="${c}">${c}</button>`).join("")}
+function grid(){
+ const l=M.filter(x=>(cat=="Semua"||x.c==cat)&&x.n.toLowerCase().includes(q));
+ $("#grid").innerHTML=l.map(x=>`<button class="it" data-a="${x.n}"><i style="background:${col(x.n)}">${ini(x.n)}</i><span>${x.n}</span><small>${rp(x.p)}</small></button>`).join("")||`<p class="mut">Menu tidak ditemukan.</p>`}
+function lines(){
+ const e=Object.entries(cart);
+ $("#lines").innerHTML=e.map(([n,k])=>`<div class="ln"><div><b>${n}</b><small>${rp(price(n))}</small></div><div class="q"><button data-m="${n}" aria-label="Kurangi">−</button>${k}<button data-p="${n}" aria-label="Tambah">+</button></div></div>`).join("")||`<p class="mut">Ketuk menu untuk menambah pesanan.</p>`;
+ $("#tt").textContent=rp(total());$("#pay").disabled=!e.length}
+
+function payUI(){
+ const t=total();
+ dlg.innerHTML=`<h3>Pembayaran</h3><div class="big">${rp(t)}</div>
+ <div class="chips">${["Tunai","QRIS","Transfer"].map(m=>`<button class="chip ${m==pm?"on":""}" data-pm="${m}">${m}</button>`).join("")}</div>
+ ${pm=="Tunai"?`<input id="cash" type="number" inputmode="numeric" placeholder="Uang diterima"><div class="chips">${[t,20000,50000,100000].map(v=>`<button class="chip" data-q="${v}">${v==t?"Uang pas":rp(v)}</button>`).join("")}</div><p>Kembalian: <b id="chg">Rp 0</b></p>`
+ :`<p class="mut">${pm=="QRIS"?"Tunjukkan QR ke pelanggan, lalu konfirmasi setelah lunas.":"Konfirmasi setelah transfer diterima."}</p>`}
+ <div class="row"><button data-x>Batal</button><button class="pri" id="ok">Selesaikan</button></div>`;
+ if(!dlg.open)dlg.showModal();chk()}
+function chk(){
+ const t=total();let ok=true;
+ if(pm=="Tunai"){const c=+($("#cash").value||0);ok=c>=t;$("#chg").textContent=rp(Math.max(0,c-t))}
+ $("#ok").disabled=!ok}
+function done(){
+ const t=total(),paid=pm=="Tunai"?+$("#cash").value:t;
+ const s={id:"TRX-"+String(S.length+1).padStart(4,"0"),at:new Date().toISOString(),items:{...cart},total:t,paid,pm,tb:$("#tb").value,cu:$("#cu").value,nt:$("#nt").value};
+ S.push(s);save();
+ dlg.innerHTML=`<h3>Transaksi berhasil</h3><div class="rc"><div><span>${s.id}</span><span>${new Date(s.at).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</span></div>
+ ${Object.entries(s.items).map(([n,k])=>`<div><span>${k} × ${n}</span><span>${rp(price(n)*k)}</span></div>`).join("")}
+ <hr><div><b>Total</b><b>${rp(t)}</b></div><div><span>${pm}</span><span>${rp(paid)}</span></div><div><span>Kembalian</span><span>${rp(paid-t)}</span></div></div>
+ <div class="row"><button class="pri" data-x>Pesanan baru</button></div>`;
+ cart={};["tb","cu","nt"].forEach(i=>$("#"+i).value="");lines()}
+function hist(){
+ const d=new Date().toDateString(),l=S.filter(x=>new Date(x.at).toDateString()==d).reverse();
+ dlg.innerHTML=`<h3>Riwayat hari ini</h3><div class="big">${rp(l.reduce((a,x)=>a+x.total,0))}</div><p class="mut">${l.length} transaksi</p><div class="rc">${l.map(x=>`<div><span>${x.id} · ${x.pm}</span><span>${rp(x.total)}</span></div>`).join("")||`<p class="mut">Belum ada transaksi.</p>`}</div><div class="row"><button data-x>Tutup</button></div>`;
+ dlg.showModal()}
+
+document.addEventListener("click",e=>{
+ const b=e.target.closest("button");if(!b)return;const d=b.dataset;
+ if(b.id=="pay"){pm="Tunai";payUI()}
+ else if(b.id=="clr"){cart={};lines()}
+ else if(b.id=="hist")hist();
+ else if(b.id=="ok")done();
+ else if(d.a){cart[d.a]=(cart[d.a]||0)+1;lines()}
+ else if(d.p){cart[d.p]++;lines()}
+ else if(d.m){if(--cart[d.m]<=0)delete cart[d.m];lines()}
+ else if(d.c){cat=d.c;cats();grid()}
+ else if(d.pm){pm=d.pm;payUI()}
+ else if(d.q){$("#cash").value=d.q;chk()}
+ else if("x" in d)dlg.close()});
+dlg.addEventListener("input",chk);
+$("#s").addEventListener("input",e=>{q=e.target.value.toLowerCase();grid()});
+cats();grid();lines();
+</script>
+</body>
+</html>
