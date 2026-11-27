@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'transaction_id',
+    'tenant_id',
+    'tenant_name',
     'menu_id',
     'menu_name',
     'price',
@@ -24,6 +26,7 @@ class TransactionItem extends Model
     protected function casts(): array
     {
         return [
+            'tenant_id' => 'integer',
             'price' => 'integer',
             'qty' => 'integer',
             'subtotal' => 'integer',
@@ -33,6 +36,11 @@ class TransactionItem extends Model
     public function transaction(): BelongsTo
     {
         return $this->belongsTo(Transaction::class);
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
     }
 
     public function menu(): BelongsTo

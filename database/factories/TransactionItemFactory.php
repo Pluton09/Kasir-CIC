@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Menu;
+use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -18,6 +19,8 @@ class TransactionItemFactory extends Factory
 
         return [
             'transaction_id' => Transaction::factory(),
+            'tenant_id' => Tenant::factory(),
+            'tenant_name' => fake()->company(),
             'menu_id' => $menu,
             'menu_name' => fake()->words(2, true),
             'price' => 6000,

@@ -14,8 +14,8 @@ class TransactionFactory extends Factory
     public function definition(): array
     {
         $total = fake()->numberBetween(1, 20) * 1000;
-        $paymentMethod = fake()->randomElement(['tunai', 'qris', 'transfer']);
-        $paidAmount = $paymentMethod === 'tunai'
+        $paymentMethod = fake()->randomElement(['Tunai', 'QRIS', 'Transfer']);
+        $paidAmount = $paymentMethod === 'Tunai'
             ? $total + (fake()->numberBetween(0, 5) * 1000)
             : $total;
 

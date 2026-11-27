@@ -34,11 +34,14 @@ class Menu extends Model
     }
 
     /**
-     * Menu yang boleh dipesan: menunya aktif dan kategorinya juga aktif.
+     * Menu yang boleh dipesan: menunya aktif, kategorinya aktif,
+     * dan tenant pemilik kategori juga aktif.
      */
     public function scopeAvailable(Builder $query): void
     {
         $query->where('is_active', true)
-            ->whereHas('category', fn (Builder $category) => $category->where('is_active', true));
+            ->whereHas('category', fn (Builder $category) => $category
+                ->where('is_active', true)
+                ->whereHas('tenant', fn (Builder $tenant) => $tenant->where('is_active', true)));
     }
 }
